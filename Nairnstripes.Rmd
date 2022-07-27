@@ -1,0 +1,281 @@
+---
+title: "Nairn Stripes"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+This is a version of the famous warming stripes data plot using the met office data for Nairn and adapting the code from Stats4SD  Oxford data example, that can be found at
+
+https://shiny.stats4sd.org/r2020_08Stripe/#section-introduction
+
+data can be found at
+
+https://www.metoffice.gov.uk/pub/data/weather/uk/climate/stationdata/nairndata.txt
+ 
+Set up and load data
+```{r set up, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(readxl)
+nairn_data <- read_excel("nairndataNARM.xlsx")
+summary(nairn_data)
+```
+Get the monthly average
+
+```{r include=FALSE}
+nairn_data<-
+  nairn_data %>%
+    mutate(tmean=(Tmin+Tmax)/2)
+```
+
+Reference period yearly average
+
+```{r}
+refmean=nairn_data %>%
+  filter(Year>=1971 & Year<=2000) %>%
+    summarise(mean=mean(tmean))
+```
+
+get annual means from all of the data
+
+```{r annual means}
+ annualt <- nairn_data %>%
+  group_by(Year) %>%
+    summarise(tmean=mean(tmean))
+```
+
+calculate the temperature anomaly
+
+```{r}
+nairn_data %>%
+  group_by(Year) %>%
+    summarise(tmean=mean(tmean)) %>%
+        mutate(anomaly=tmean-refmean$mean)
+
+```
+
+In the original version for Oxford they then fillet to exclude
+some years where there is missing data but this has already been dealt with for the Nairn data set prior to importing.
+but here is the code for completeness. However we have an incomplete years data for 2022 and this gives a odd cold biased result for this year so we will filter that out
+
+```{r}
+nairn_plot_data<-
+  nairn_data %>%
+    group_by(Year) %>%
+     summarise(tmean=mean(tmean)) %>%
+        mutate(anomaly=tmean-refmean$mean) %>%
+          filter(Year<=2021)
+```
+
+Constructing the plot
+
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=1,fill=anomaly))+
+  geom_col()
+```
+
+change the colour ramp
+
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=1,fill=anomaly))+
+  geom_col()+
+    scale_fill_gradient2(low = "darkblue",mid="white",high="darkred")
+```
+
+better still is to use colour fermenter
+
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=1,fill=anomaly))+
+  geom_col()+
+    scale_fill_fermenter(palette="RdBu")
+```
+
+Make colour scale symetrical
+
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=1,fill=anomaly))+
+  geom_col()+
+    scale_fill_gradient2(low = "darkblue",mid="white",high="darkred",limits=c(-2,2))
+```
+
+But better with this
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=1,fill=anomaly))+
+  geom_col()+
+    scale_fill_fermenter(palette="RdBu",limits=c(-1.5,1.5))
+```
+
+remove white space between each bar
+
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=1,fill=anomaly))+
+  geom_col(width=1)+
+    scale_fill_fermenter(palette="RdBu",limits=c(-1.5,1.5))
+```
+remove lables and scale with theme void
+
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=1,fill=anomaly))+
+  geom_col(width=1)+
+    scale_fill_fermenter(palette="RdBu",limits=c(-1.5,1.5))+
+      theme_void()
+```
+
+get rid of the legend and add a title
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=1,fill=anomaly))+
+  geom_col(width=1,show.legend = FALSE)+
+    scale_fill_fermenter(palette="RdBu",limits=c(-1.5,1.5))+
+     theme_void()+
+      labs(title="Nairn Warming Stripes",subtitle = "1931-2021")
+
+```
+So Nairn shows a different pattern to Oxford with more warm anomalies in the 1930's and 1940's. Recent warming is still significant.
+
+What would other coastal sites such as Dunstaffanage and Tiree look like ?
+
+If you are a fan of pipes it can be done all in one pipe like this
+```{r}
+nairn_data %>%
+  mutate(tave=(Tmax+Tmin)/2) %>%
+    group_by(Year) %>%
+      summarise(tave=mean(tave)) %>%
+        filter(Year <2022) %>%
+          mutate(ref_temp=ifelse(Year>=1971 & Year <=2000, tave,NA)) %>%
+            mutate(ref_ave=mean(ref_temp,na.rm=TRUE)) %>%
+              mutate(anomaly=tave-ref_ave) %>%
+                ggplot(aes(x=Year,fill=anomaly,y=1))+
+                   geom_col(show.legend = FALSE,width=1)+
+                     scale_fill_fermenter(palette="RdBu",limits=c(-1.5,1.5))+
+                        theme_void()+
+                           labs(fill="Temperature Anomaly",title="Nair Warming Stripes",subtitle = "1931-2021")
+```
+
+Could we do something similar for rainfall
+
+Set up and load data
+```{r  rainfall set up, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(readxl)
+nairn_data <- read_excel("nairndataNARM.xlsx")
+summary(nairn_data)
+```
+
+Monthly rainfall is already in the data we don't need to subtract min from max as we did for temperature. but just to duplicate the workflow
+
+```{r}
+nairn_data<-
+  nairn_data %>%
+    mutate(rmean=(rainfall)/1)
+```
+
+How can we aggrgate these up to get annual rainfall...Yes and filter to skip the incompleat year 2022
+
+```{r}
+aggr1 <- nairn_data %>%
+          group_by(Year) %>%
+            filter(Year <= 2021) %>%
+              summarise(rainfall = sum(rainfall))
+```
+
+
+
+calculate monthly rmean for reference period
+```{r}
+refmean=nairn_data %>%
+  filter(Year>=1971 & Year<=2000) %>%
+    summarise(mean=mean(rmean))
+```
+
+calculate annual monthly rainfall anomaly cf the reference period... does this give the same value if we were to work on the  aggregated annual rainfall...need to check
+
+```{r}
+nairn_plot_data <- nairn_data %>%
+  group_by(Year) %>%
+    summarise(rmean=mean(rmean)) %>%
+        mutate(anomaly=rmean-refmean$mean) %>%
+          filter(Year <= 2021)
+
+```
+
+make plot but note rainfall anomaly size is very different to temperature so scale needs to be adjusted.
+
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=1,fill=anomaly))+
+  geom_col(width=1)+
+    scale_fill_fermenter(palette="RdBu",limits=c(-25,25))
+```
+If we plot rmean against year there looks to be a dip in values during the reference period which may be giving misleading results for the anomaly. 
+
+```{r}
+ggplot(data=nairn_plot_data,aes(x=Year,y=rmean))+ 
+  geom_line()+ geom_smooth()
+```
+
+Compare the above to the annual aggregated data. This gives the same shape but the values are higher as this is annual rainfall rather than average monthly rainfall by year (rmean).
+
+```{r}
+ggplot(data=aggr1,aes(x=Year,y=rainfall))+ 
+  geom_line()+ geom_smooth()
+```
+
+Replicate the stripes plot using the aggregated annual data.
+first calculate the mean of the reference period.
+
+```{r}
+refmeanann=aggr1 %>%
+  filter(Year>=1971 & Year<=2000) %>%
+    summarise(mean=mean(rainfall))
+```
+
+Then calculate the anomaly and check what its max and min values are
+
+```{r}
+nairn_plot_dataann <- aggr1 %>%
+        mutate(anomaly=rainfall-refmeanann$mean) %>%
+          filter(Year <= 2021)
+```
+
+```{r}
+summary(nairn_plot_dataann)
+```
+
+So the scale of the stripes plot will need to range from -245 to 202 (use -250 to +250) in the plot.
+
+```{r}
+ggplot(data=nairn_plot_dataann,aes(x=Year,y=1,fill=anomaly))+
+  geom_col(width=1)+
+    scale_fill_fermenter(palette="RdBu",limits=c(-250,250))
+```
+
+This is still biased by the rainfall minimum in the 1970's where we start the reference value, so for refmeanann take an average of all of th annual rainfall data.
+
+```{r}
+refmeanann=aggr1 %>%
+  filter(Year>=1931 & Year<=2021) %>%
+    summarise(mean=mean(rainfall))
+```
+
+This changes the reference value from 593mm to 636mm. Now if we recalculate the anomaly, check the max and min values and then make the plot with new scale values (-300 to +300), we get a less biased plot.
+
+```{r}
+nairn_plot_dataann <- aggr1 %>%
+        mutate(anomaly=rainfall-refmeanann$mean) %>%
+          filter(Year <= 2021)
+```
+
+```{r}
+summary(nairn_plot_dataann)
+```
+
+```{r}
+ggplot(data=nairn_plot_dataann,aes(x=Year,y=1,fill=anomaly))+
+  geom_col(width=1)+
+    scale_fill_fermenter(palette="RdBu",limits=c(-300,300))
+```
+
+Can we turn this into one giant pipe?
+
+
+
