@@ -55,7 +55,7 @@ nairn_data %>%
 
 ```
 
-In the original version for Oxford they then fillet to exclude
+In the original version for Oxford they then filter to exclude
 some years where there is missing data but this has already been dealt with for the Nairn data set prior to importing.
 but here is the code for completeness. However we have an incomplete years data for 2022 and this gives a odd cold biased result for this year so we will filter that out
 
@@ -149,7 +149,7 @@ nairn_data %>%
                    geom_col(show.legend = FALSE,width=1)+
                      scale_fill_fermenter(palette="RdBu",limits=c(-1.5,1.5))+
                         theme_void()+
-                           labs(fill="Temperature Anomaly",title="Nair Warming Stripes",subtitle = "1931-2021")
+                           labs(fill="Temperature Anomaly",title="Nairn Warming Stripes",subtitle = "1931-2021")
 ```
 
 Could we do something similar for rainfall
