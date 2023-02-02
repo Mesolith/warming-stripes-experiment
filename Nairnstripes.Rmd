@@ -55,6 +55,9 @@ nairn_data %>%
 
 ```
 
+Note although there is only one value in refmean it is in the column mean
+so the call is for the whole column using the "$" notation ie refmean$mean
+
 In the original version for Oxford they then filter to exclude
 some years where there is missing data but this has already been dealt with for the Nairn data set prior to importing.
 but here is the code for completeness. However we have an incomplete years data for 2022 and this gives a odd cold biased result for this year so we will filter that out
@@ -249,7 +252,7 @@ ggplot(data=nairn_plot_dataann,aes(x=Year,y=1,fill=anomaly))+
     scale_fill_fermenter(palette="RdBu",limits=c(-250,250))
 ```
 
-This is still biased by the rainfall minimum in the 1970's where we start the reference value, so for refmeanann take an average of all of th annual rainfall data.
+This is still biased by the rainfall minimum in the 1970's where we start the reference value, so for refmeanann take an average of all of the annual rainfall data.
 
 ```{r}
 refmeanann=aggr1 %>%
